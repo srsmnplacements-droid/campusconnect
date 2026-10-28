@@ -55,7 +55,11 @@ export default function AdminDashboard() {
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {['Student directory and CSV import', 'Recruitment drives', 'Events and attendance', 'Notices and resources', 'Academic year archive', 'Storage dashboard'].map(t => (
+        <Link to="/admin/students" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">Student directory and CSV import</h3>
+          <p className="mt-1 text-sm text-slate-600">Add, edit, search, import and export students.</p>
+        </Link>
+        {['Recruitment drives', 'Events and attendance', 'Notices and resources', 'Academic year archive', 'Storage dashboard'].map(t => (
           <div key={t} className="card">
             <h3 className="font-semibold text-brand-green">{t}</h3>
             <p className="mt-1 text-sm text-slate-500">Coming in the next phases.</p>
