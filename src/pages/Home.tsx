@@ -3,19 +3,27 @@ import { Link } from 'react-router-dom'
 import { supabase, configMissing } from '../lib/supabase'
 import { COLLEGE_NAME } from '../config'
 import { Spinner } from '../components/Layout'
+import { catLabel, formatDate, isHttpUrl } from '../lib/content'
 
-interface Notice { id: string; title: string; body: string | null; published_at: string | null }
+interface Notice { id: string; title: string; body: string | null; category: string; published_at: string | null }
+interface Resource { id: string; title: string; description: string | null; category: string; external_link: string | null }
 
 export default function Home() {
   const [notices, setNotices] = useState<Notice[] | null>(null)
+  const [resources, setResources] = useState<Resource[]>([])
 
   useEffect(() => {
     if (configMissing) { setNotices([]); return }
     supabase.from('notices')
-      .select('id, title, body, published_at')
+      .select('id, title, body, category, published_at')
       .eq('status', 'published').eq('is_public', true)
       .order('published_at', { ascending: false }).limit(5)
       .then(({ data }) => setNotices((data as Notice[]) ?? []))
+    supabase.from('placement_resources')
+      .select('id, title, description, category, external_link')
+      .eq('status', 'published').eq('is_public', true)
+      .order('created_at', { ascending: false }).limit(6)
+      .then(({ data }) => setResources((data as Resource[]) ?? []))
   }, [])
 
   return (
@@ -48,15 +56,34 @@ export default function Home() {
             {notices.map(n => (
               <div key={n.id} className="card">
                 <h3 className="font-semibold text-brand-navy">{n.title}</h3>
-                {n.published_at && (
-                  <p className="text-xs text-slate-500">{new Date(n.published_at).toLocaleDateString('en-IN')}</p>
-                )}
-                {n.body && <p className="mt-2 text-sm text-slate-600">{n.body.slice(0, 160)}</p>}
+                <p className="text-xs text-slate-500">
+                  {catLabel('notices', n.category)}{n.published_at ? ' · ' + formatDate(n.published_at) : ''}
+                </p>
+                {n.body && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{n.body.length > 200 ? n.body.slice(0, 200) + '...' : n.body}</p>}
               </div>
             ))}
           </div>
         )}
       </section>
+
+      {resources.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-xl font-bold text-brand-navy">Placement resources</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {resources.map(r => (
+              <div key={r.id} className="card">
+                <h3 className="font-semibold text-brand-navy">{r.title}</h3>
+                <p className="text-xs text-slate-500">{catLabel('placement_resources', r.category)}</p>
+                {r.description && <p className="mt-2 text-sm text-slate-600">{r.description.length > 160 ? r.description.slice(0, 160) + '...' : r.description}</p>}
+                {r.external_link && isHttpUrl(r.external_link) && (
+                  <a className="mt-2 inline-block text-sm font-semibold text-brand-green underline" href={r.external_link} target="_blank" rel="noopener noreferrer">Open link</a>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Log in as a student to see all resources and downloads.</p>
+        </section>
+      )}
 
       <section className="grid gap-3 sm:grid-cols-3">
         {[
