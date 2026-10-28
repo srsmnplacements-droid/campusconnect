@@ -4,14 +4,14 @@ import Papa from 'papaparse'
 import { callAdmin, RowResult } from '../lib/api'
 import { downloadCsv } from '../lib/csv'
 
-const HEADERS = ['register_no', 'full_name', 'course', 'semester', 'batch', 'academic_year', 'email', 'phone']
+const HEADERS = ['register_no', 'full_name', 'course', 'semester', 'batch', 'academic_year', 'email', 'phone', 'temp_password']
 const REQUIRED = ['register_no', 'full_name', 'course', 'semester']
 const MAX_ROWS = 500
 
 function downloadTemplate() {
   downloadCsv('CampusConnect_student_template.csv', HEADERS, [
-    ['U12345', 'Sample Student One', 'BCOM', '3', '2024-27', '2026-27', 'sample1@example.com', '9876543210'],
-    ['U12346', 'Sample Student Two', 'MSW', '1', '2026-28', '2026-27', '', ''],
+    ['U12345', 'Sample Student One', 'BCOM', '3', '2024-27', '2026-27', 'sample1@example.com', '9876543210', ''],
+    ['U12346', 'Sample Student Two', 'MSW', '1', '2026-28', '2026-27', '', '', 'MyTempPass123'],
   ])
 }
 
@@ -121,6 +121,7 @@ export default function ImportStudents() {
           <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
             <li>Download the template and fill in your students.</li>
             <li>Course must be one of: BCOM, BBA, BA, BSC, BCA, BSW, MSW.</li>
+            <li>Optional: fill the temp_password column (8+ characters) to choose a password yourself. Leave it empty to auto-generate.</li>
             <li>Choose the file. You will see a preview before anything is saved.</li>
           </ol>
           <button className="btn-outline" onClick={downloadTemplate}>Download CSV template</button>

@@ -28,6 +28,7 @@ export default function StudentsPage() {
   const [cred, setCred] = useState<{ reg: string; pw: string } | null>(null)
   const [reload, setReload] = useState(0)
   const [busyId, setBusyId] = useState('')
+  const [resetFor, setResetFor] = useState<any | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -89,15 +90,7 @@ export default function StudentsPage() {
     if (e) setError(e.message); else setReload(n => n + 1)
   }
 
-  async function resetPw(s: any) {
-    if (!window.confirm('Create a new temporary password for ' + s.full_name + '? The old password will stop working.')) return
-    setBusyId(s.id)
-    try {
-      const r = await callAdmin<{ temp_password: string }>({ action: 'reset_password', student_id: s.id })
-      setCred({ reg: s.register_no, pw: r.temp_password })
-    } catch (e: any) { setError(e.message) }
-    setBusyId('')
-  }
+  function resetPw(s: any) { setResetFor(s) }
 
   async function exportCsv() {
     setError('')
@@ -195,6 +188,8 @@ export default function StudentsPage() {
         onClose={() => setEdit(null)} onSaved={() => { setEdit(null); setReload(n => n + 1) }} />}
       {adding && <AddModal courses={courses} years={years} defaultYear={yearLabel}
         onClose={() => setAdding(false)} onCreated={(reg, pw) => { setAdding(false); setCred({ reg, pw }); setReload(n => n + 1) }} />}
+      {resetFor && <ResetModal s={resetFor} onClose={() => setResetFor(null)}
+        onDone={(reg, pw) => { setResetFor(null); setCred({ reg, pw }) }} />}
       {cred && <Modal title="Temporary password" onClose={() => setCred(null)}>
         <p className="text-sm text-slate-600">Give this to the student. It is shown <b>only once</b>. They must change it at first login.</p>
         <div className="mt-3 rounded-lg bg-slate-100 p-3 text-center">
@@ -265,7 +260,7 @@ function EditModal({ s, rec, courses, yearId, yearLabel, onClose, onSaved }:
 
 function AddModal({ courses, years, defaultYear, onClose, onCreated }:
   { courses: Course[]; years: Year[]; defaultYear: string; onClose: () => void; onCreated: (reg: string, pw: string) => void }) {
-  const [v, setV] = useState({ register_no: '', full_name: '', course: courses[0]?.code ?? '', semester: '1', batch: '', academic_year: defaultYear || years[0]?.label || '', email: '', phone: '' })
+  const [v, setV] = useState({ register_no: '', full_name: '', course: courses[0]?.code ?? '', semester: '1', batch: '', academic_year: defaultYear || years[0]?.label || '', email: '', phone: '', temp_password: '' })
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k: string, val: string) => setV(p => ({ ...p, [k]: val }))
@@ -302,8 +297,41 @@ function AddModal({ courses, years, defaultYear, onClose, onCreated }:
         </Field>
         <Field label="Email (optional)"><input className="input" type="email" value={v.email} onChange={e => set('email', e.target.value)} /></Field>
         <Field label="Phone (optional)"><input className="input" inputMode="tel" value={v.phone} onChange={e => set('phone', e.target.value)} /></Field>
+        <Field label="Temporary password (optional)">
+          <input className="input" value={v.temp_password} onChange={e => set('temp_password', e.target.value)}
+            placeholder="Leave empty to auto-generate" autoComplete="off" />
+          <p className="mt-1 text-xs text-slate-500">At least 8 characters. The student must change it at first login.</p>
+        </Field>
         {err && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{err}</div>}
         <button className="btn-green w-full" disabled={busy}>{busy ? 'Creating...' : 'Create student'}</button>
+      </form>
+    </Modal>
+  )
+}
+
+function ResetModal({ s, onClose, onDone }: { s: any; onClose: () => void; onDone: (reg: string, pw: string) => void }) {
+  const [pw, setPw] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  async function go(e: FormEvent) {
+    e.preventDefault(); setErr('')
+    if (pw.trim() && pw.trim().length < 8) { setErr('Use at least 8 characters, or leave it empty to auto-generate.'); return }
+    setBusy(true)
+    try {
+      const r = await callAdmin<{ temp_password: string }>({ action: 'reset_password', student_id: s.id, temp_password: pw.trim() })
+      onDone(s.register_no, r.temp_password)
+    } catch (ex: any) { setErr(ex.message) }
+    setBusy(false)
+  }
+  return (
+    <Modal title={'Reset password: ' + s.register_no} onClose={onClose}>
+      <form onSubmit={go} className="space-y-3">
+        <p className="text-sm text-slate-600">{s.full_name}'s old password will stop working. They must set a new one at next login.</p>
+        <Field label="New temporary password (optional)">
+          <input className="input" value={pw} onChange={e => setPw(e.target.value)} placeholder="Leave empty to auto-generate" autoComplete="off" />
+        </Field>
+        {err && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{err}</div>}
+        <button className="btn-green w-full" disabled={busy}>{busy ? 'Resetting...' : 'Reset password'}</button>
       </form>
     </Modal>
   )

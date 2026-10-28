@@ -22,8 +22,9 @@ export default function ChangePassword() {
     setBusy(true)
     const { error: err } = await supabase.auth.updateUser({ password: pw })
     if (err) { setBusy(false); setError(err.message); return }
-    if (role === 'student' && student) {
-      await supabase.from('student_profiles').update({ must_change_password: false }).eq('id', student.id)
+    if (role === 'student') {
+      const { error: e2 } = await supabase.rpc('mark_password_changed')
+      if (e2) { setBusy(false); setError('Password changed, but could not finish setup: ' + e2.message); return }
       await refresh()
     }
     setBusy(false)

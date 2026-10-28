@@ -41,10 +41,16 @@ Deno.serve(async (req) => {
     const caller = userData?.user
     if (!caller) return json({ ok: false, error: 'Please sign in again.' })
 
-    const admin = createClient(url, serviceKey, { auth: { persistSession: false } })
-    const { data: roleRow } = await admin
+    // Check the caller's role using THEIR OWN login (no secret key needed).
+    const { data: roleRow, error: roleErr } = await userClient
       .from('user_roles').select('role').eq('user_id', caller.id).maybeSingle()
+    if (roleErr) return json({ ok: false, error: 'Could not check your role: ' + roleErr.message })
     if (roleRow?.role !== 'admin') return json({ ok: false, error: 'Administrators only.' })
+
+    // Server-side client with the secret key (never leaves Supabase's servers).
+    const admin = createClient(url, serviceKey, { auth: { persistSession: false } })
+    const { error: svcErr } = await admin.from('courses').select('id').limit(1)
+    if (svcErr) return json({ ok: false, error: 'Server key problem: ' + svcErr.message })
 
     const body = await req.json()
 
@@ -54,7 +60,10 @@ Deno.serve(async (req) => {
         .from('student_profiles').select('id, user_id, register_no').eq('id', body.student_id).maybeSingle()
       if (!sp) return json({ ok: false, error: 'Student not found.' })
       if (!sp.user_id) return json({ ok: false, error: 'This student has no login account.' })
-      const pw = tempPassword()
+      const custom = String(body.temp_password ?? '').trim()
+      if (custom && (custom.length < 8 || custom.length > 64))
+        return json({ ok: false, error: 'Temporary password must be 8 to 64 characters.' })
+      const pw = custom || tempPassword()
       const { error } = await admin.auth.admin.updateUserById(sp.user_id, { password: pw })
       if (error) return json({ ok: false, error: error.message })
       await admin.from('student_profiles').update({ must_change_password: true }).eq('id', sp.id)
@@ -97,6 +106,7 @@ Deno.serve(async (req) => {
         const email = String(r.email ?? '').trim()
         const phone = String(r.phone ?? '').trim()
         const batch = String(r.batch ?? '').trim()
+        const customPw = String(r.temp_password ?? '').trim()
         const course = courseMap.get(norm(r.course))
         const sem = parseInt(String(r.semester ?? ''), 10)
         const yl = String(r.academic_year ?? '').trim()
@@ -111,6 +121,7 @@ Deno.serve(async (req) => {
         if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errs.push('Invalid email address')
         if (phone && !/^[0-9+\- ]{7,15}$/.test(phone)) errs.push('Invalid phone number')
         if (batch.length > 20) errs.push('Batch text is too long')
+        if (customPw && (customPw.length < 8 || customPw.length > 64)) errs.push('Temporary password must be 8 to 64 characters')
         if (!year) errs.push(yl ? 'Academic year "' + yl + '" not found' : 'No current academic year is set')
 
         if (errs.length) { results.push({ register_no: reg, status: 'invalid', message: errs.join('; ') }); continue }
@@ -121,7 +132,7 @@ Deno.serve(async (req) => {
         if (dryRun) { results.push({ register_no: reg, status: 'ok', message: 'Ready to import' }); continue }
 
         // ---- create login, profile and year record (undo if anything fails)
-        const pw = tempPassword()
+        const pw = customPw || tempPassword()
         const { data: created, error: ue } = await admin.auth.admin.createUser({
           email: loginEmail(reg), password: pw, email_confirm: true,
         })

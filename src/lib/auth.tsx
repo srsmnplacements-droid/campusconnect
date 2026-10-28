@@ -61,8 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  const loadProfile = useCallback(async (uid: string) => {
-    setLoading(true)
+  const loadProfile = useCallback(async (uid: string, silent = false) => {
+    if (!silent) setLoading(true)
     const { data: r } = await supabase
       .from('user_roles').select('role').eq('user_id', uid).maybeSingle()
     if (r?.role === 'admin') {
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [uid, loadProfile])
 
   const refresh = useCallback(async () => {
-    if (uid) await loadProfile(uid)
+    if (uid) await loadProfile(uid, true)
   }, [uid, loadProfile])
 
   const signOut = useCallback(async () => {
