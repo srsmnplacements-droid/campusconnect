@@ -29,6 +29,8 @@ export default function StudentsPage() {
   const [reload, setReload] = useState(0)
   const [busyId, setBusyId] = useState('')
   const [resetFor, setResetFor] = useState<any | null>(null)
+  const [deleteFor, setDeleteFor] = useState<any | null>(null)
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -146,6 +148,7 @@ export default function StudentsPage() {
         </div>
       </div>
 
+      {notice && <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800">{notice}</div>}
       {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       {loading ? <Spinner /> : rows.length === 0 ? (
@@ -172,6 +175,7 @@ export default function StudentsPage() {
                   <button className="btn-outline !py-1.5" disabled={busyId === s.id} onClick={() => toggleStatus(s)}>
                     {s.status === 'active' ? 'Deactivate' : 'Activate'}
                   </button>
+                  <button className="btn !py-1.5 border border-red-300 bg-white text-red-700 hover:bg-red-50" disabled={busyId === s.id} onClick={() => { setNotice(''); setDeleteFor(s) }}>Delete</button>
                 </div>
               </div>
             )
@@ -188,6 +192,8 @@ export default function StudentsPage() {
         onClose={() => setEdit(null)} onSaved={() => { setEdit(null); setReload(n => n + 1) }} />}
       {adding && <AddModal courses={courses} years={years} defaultYear={yearLabel}
         onClose={() => setAdding(false)} onCreated={(reg, pw) => { setAdding(false); setCred({ reg, pw }); setReload(n => n + 1) }} />}
+      {deleteFor && <DeleteModal s={deleteFor} onClose={() => setDeleteFor(null)}
+        onDeleted={(reg) => { setDeleteFor(null); setNotice('Student ' + reg + ' was permanently deleted.'); setReload(n => n + 1) }} />}
       {resetFor && <ResetModal s={resetFor} onClose={() => setResetFor(null)}
         onDone={(reg, pw) => { setResetFor(null); setCred({ reg, pw }) }} />}
       {cred && <Modal title="Temporary password" onClose={() => setCred(null)}>
@@ -304,6 +310,47 @@ function AddModal({ courses, years, defaultYear, onClose, onCreated }:
         </Field>
         {err && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{err}</div>}
         <button className="btn-green w-full" disabled={busy}>{busy ? 'Creating...' : 'Create student'}</button>
+      </form>
+    </Modal>
+  )
+}
+
+function DeleteModal({ s, onClose, onDeleted }: { s: any; onClose: () => void; onDeleted: (reg: string) => void }) {
+  const [typed, setTyped] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const match = typed.trim().toUpperCase() === String(s.register_no).toUpperCase()
+
+  async function go(e: FormEvent) {
+    e.preventDefault(); setErr('')
+    if (!match) { setErr('The register number does not match.'); return }
+    setBusy(true)
+    try {
+      await callAdmin({ action: 'delete_student', student_id: s.id, confirm_register_no: typed.trim() })
+      onDeleted(s.register_no)
+    } catch (ex: any) { setErr(ex.message) }
+    setBusy(false)
+  }
+
+  return (
+    <Modal title="Delete student permanently" onClose={onClose}>
+      <form onSubmit={go} className="space-y-3">
+        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+          <b>{s.full_name}</b> ({s.register_no}) will be deleted forever, together with their login, resume,
+          drive registrations, event registrations, attendance and placement results. This cannot be undone.
+        </div>
+        <p className="text-sm text-slate-600">
+          If the student has only left the college, use <b>Deactivate</b> instead. It keeps their history safe and can be reversed.
+        </p>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Type the register number <b>{s.register_no}</b> to confirm</label>
+          <input className="input" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" />
+        </div>
+        {err && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{err}</div>}
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" className="btn-outline" onClick={onClose}>Cancel</button>
+          <button className="btn !bg-red-600 !text-white hover:!bg-red-700" disabled={!match || busy}>{busy ? 'Deleting...' : 'Delete forever'}</button>
+        </div>
       </form>
     </Modal>
   )

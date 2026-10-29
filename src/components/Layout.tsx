@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ReactNode } from 'react'
 import { useAuth } from '../lib/auth'
-import { APP_NAME, COLLEGE_ADDRESS, COLLEGE_NAME, COLLEGE_SHORT, CONTACT_EMAIL, CONTACT_PHONE } from '../config'
+import { APP_NAME, COLLEGE_ADDRESS, COLLEGE_NAME, COLLEGE_SHORT, CONTACT_EMAIL, COORDINATORS } from '../config'
 
 export function Spinner({ text = 'Loading...' }: { text?: string }) {
   return (
@@ -60,7 +60,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="font-semibold text-white">Placement Cell</div>
           <div>{COLLEGE_NAME}</div>
           <div>{COLLEGE_ADDRESS}</div>
-          <div>Email: {CONTACT_EMAIL} | Phone: {CONTACT_PHONE}</div>
+          <div>Email: <a href={'mailto:' + CONTACT_EMAIL} className="underline">{CONTACT_EMAIL}</a></div>
+          <div className="pt-1 font-semibold text-white">Placement Coordinators</div>
+          {COORDINATORS.map(c => (
+            <div key={c.phone}>{c.name}: <a href={'tel:+91' + c.phone} className="underline">{c.phone}</a></div>
+          ))}
         </div>
       </footer>
     </div>

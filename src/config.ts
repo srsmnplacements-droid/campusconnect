@@ -5,9 +5,12 @@ export const COLLEGE_SHORT = 'SRSMN GFGC Barkur'
 export const APP_NAME = 'CampusConnect'
 export const COLLEGE_ADDRESS = 'Barkur, Udupi District, Karnataka, India'
 
-// TODO: replace with the real Placement Cell contact details
-export const CONTACT_EMAIL = 'To be updated'
-export const CONTACT_PHONE = 'To be updated'
+// Placement Cell contact details (shown in the footer)
+export const CONTACT_EMAIL = 'srsmn.placements@gmail.com'
+export const COORDINATORS: { name: string; phone: string }[] = [
+  { name: 'Mr. Anil Kumar K Y', phone: '8197238553' },
+  { name: 'Mr. Lakshith Poojary', phone: '9743124835' },
+]
 
 // Students log in with their register number. Behind the scenes it becomes
 // registerno@this-domain. No emails are ever sent to it.
