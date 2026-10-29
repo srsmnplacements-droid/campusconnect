@@ -10,6 +10,7 @@ import StudentsPage from './pages/StudentsPage'
 import ImportStudents from './pages/ImportStudents'
 import ContentAdmin from './pages/ContentAdmin'
 import StudentContent from './pages/StudentContent'
+import ResumePage from './pages/ResumePage'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/admin/resources" element={<RequireRole role="admin"><ContentAdmin key="resources" kind="placement_resources" /></RequireRole>} />
         <Route path="/student/notices" element={<RequireRole role="student"><StudentContent key="notices" kind="notices" /></RequireRole>} />
         <Route path="/student/resources" element={<RequireRole role="student"><StudentContent key="resources" kind="placement_resources" /></RequireRole>} />
+        <Route path="/student/resume" element={<RequireRole role="student"><ResumePage /></RequireRole>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

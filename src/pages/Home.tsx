@@ -89,7 +89,7 @@ export default function Home() {
         {[
           ['Campus drives', 'Company recruitment drives for your course (coming soon).'],
           ['Training and events', 'Workshops, aptitude training and interview preparation (coming soon).'],
-          ['Resume builder', 'Create a professional resume and download it as PDF (coming soon).'],
+          ['Resume builder', 'Students can create a professional resume and download it as PDF.'],
         ].map(([t, d]) => (
           <div key={t} className="card">
             <h3 className="font-semibold text-brand-green">{t}</h3>

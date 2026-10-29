@@ -17,7 +17,7 @@ export default function StudentDashboard() {
   if (!student) return null
   if (student.must_change_password) return <Navigate to="/change-password?first=1" replace />
 
-  const soon = ['Upcoming events', 'Campus drives for my course', 'My registrations', 'My resume']
+  const soon = ['Upcoming events', 'Campus drives for my course', 'My registrations']
 
   return (
     <div className="space-y-6">
@@ -58,6 +58,10 @@ export default function StudentDashboard() {
         <Link to="/student/resources" className="card border-brand-green hover:bg-brand-greenLight">
           <h3 className="font-semibold text-brand-green">Placement resources</h3>
           <p className="mt-1 text-sm text-slate-600">Resume guides, aptitude practice, interview tips.</p>
+        </Link>
+        <Link to="/student/resume" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">My resume</h3>
+          <p className="mt-1 text-sm text-slate-600">Build a professional resume and download it as PDF.</p>
         </Link>
         {soon.map(t => (
           <div key={t} className="card">
