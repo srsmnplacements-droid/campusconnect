@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase, configMissing } from '../lib/supabase'
 import { COLLEGE_NAME } from '../config'
 import { Spinner } from '../components/Layout'
-import { catLabel, formatDate, isHttpUrl } from '../lib/content'
+import { catLabel, eventCatLabel, formatDate, formatDateTime, isHttpUrl, startOfToday } from '../lib/content'
 
 interface Notice { id: string; title: string; body: string | null; category: string; published_at: string | null }
 interface Resource { id: string; title: string; description: string | null; category: string; external_link: string | null }
@@ -11,6 +11,7 @@ interface Resource { id: string; title: string; description: string | null; cate
 export default function Home() {
   const [notices, setNotices] = useState<Notice[] | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
+  const [events, setEvents] = useState<any[]>([])
 
   useEffect(() => {
     if (configMissing) { setNotices([]); return }
@@ -24,6 +25,11 @@ export default function Home() {
       .eq('status', 'published').eq('is_public', true)
       .order('created_at', { ascending: false }).limit(6)
       .then(({ data }) => setResources((data as Resource[]) ?? []))
+    supabase.from('events')
+      .select('id, title, category, event_start, venue, organiser')
+      .eq('status', 'published').eq('is_public', true).gte('event_start', startOfToday())
+      .order('event_start', { ascending: true }).limit(4)
+      .then(({ data }) => setEvents(data ?? []))
   }, [])
 
   return (
@@ -66,6 +72,24 @@ export default function Home() {
         )}
       </section>
 
+      {events.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-xl font-bold text-brand-navy">Upcoming events and workshops</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {events.map(ev => (
+              <div key={ev.id} className="card">
+                <h3 className="font-semibold text-brand-navy">{ev.title}</h3>
+                <p className="text-xs text-slate-500">{eventCatLabel(ev.category)}</p>
+                <p className="mt-1 text-sm text-slate-700">{formatDateTime(ev.event_start)}</p>
+                {ev.venue && <p className="text-sm text-slate-600">Venue: {ev.venue}</p>}
+                {ev.organiser && <p className="text-sm text-slate-600">Resource person: {ev.organiser}</p>}
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Log in as a student to register.</p>
+        </section>
+      )}
+
       {resources.length > 0 && (
         <section>
           <h2 className="mb-3 text-xl font-bold text-brand-navy">Placement resources</h2>
@@ -88,7 +112,7 @@ export default function Home() {
       <section className="grid gap-3 sm:grid-cols-3">
         {[
           ['Campus drives', 'Company recruitment drives for your course (coming soon).'],
-          ['Training and events', 'Workshops, aptitude training and interview preparation (coming soon).'],
+          ['Training and events', 'Workshops, aptitude training and interview preparation. Register after student login.'],
           ['Resume builder', 'Students can create a professional resume and download it as PDF.'],
         ].map(([t, d]) => (
           <div key={t} className="card">

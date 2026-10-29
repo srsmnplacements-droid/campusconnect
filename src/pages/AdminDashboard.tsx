@@ -67,7 +67,11 @@ export default function AdminDashboard() {
           <h3 className="font-semibold text-brand-green">Placement resources</h3>
           <p className="mt-1 text-sm text-slate-600">Resume guides, aptitude and interview materials.</p>
         </Link>
-        {['Recruitment drives', 'Events and attendance', 'Academic year archive', 'Storage dashboard'].map(t => (
+        <Link to="/admin/events" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">Events and attendance</h3>
+          <p className="mt-1 text-sm text-slate-600">Workshops, training, registrations and attendance.</p>
+        </Link>
+        {['Recruitment drives', 'Academic year archive', 'Storage dashboard'].map(t => (
           <div key={t} className="card">
             <h3 className="font-semibold text-brand-green">{t}</h3>
             <p className="mt-1 text-sm text-slate-500">Coming in the next phases.</p>

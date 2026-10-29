@@ -57,7 +57,7 @@ export const isHttpUrl = (s: string) => /^https?:\/\/[^\s]+$/i.test(s)
 const safeName = (n: string) => n.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80)
 
 export async function uploadAttachment(
-  file: File, kind: Kind, recordId: string, yearId: string | null, yearLabel: string,
+  file: File, kind: Kind | 'events', recordId: string, yearId: string | null, yearLabel: string,
 ): Promise<string> {
   if (file.size > MAX_FILE) throw new Error('File is too large. Maximum size is 5 MB.')
   if (!ALLOWED_TYPES.includes(file.type)) throw new Error('Only PDF, PNG, JPG or WEBP files are allowed.')
@@ -93,4 +93,37 @@ export async function openAttachment(path: string): Promise<void> {
   document.body.appendChild(a)
   a.click()
   a.remove()
+}
+
+// ---------- Events ----------
+export const EVENT_CATEGORIES: [string, string][] = [
+  ['workshop', 'Workshop'],
+  ['aptitude_training', 'Aptitude training'],
+  ['resume_session', 'Resume-writing session'],
+  ['interview_prep', 'Interview preparation'],
+  ['employability_skills', 'Employability skills'],
+  ['communication_skills', 'Communication skills'],
+  ['guest_lecture', 'Guest lecture'],
+  ['campus_drive', 'Campus drive'],
+  ['other', 'Other'],
+]
+export const eventCatLabel = (v: string) => EVENT_CATEGORIES.find(c => c[0] === v)?.[1] ?? v
+
+export function formatDateTime(iso?: string | null): string {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+}
+
+// ISO time -> value for <input type="datetime-local">
+export function toInputValue(iso?: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes())
+}
+
+export function startOfToday(): string {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString()
 }

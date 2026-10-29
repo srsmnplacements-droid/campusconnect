@@ -2,22 +2,26 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
-import { catLabel, formatDate } from '../lib/content'
+import { catLabel, eventCatLabel, formatDate, formatDateTime, startOfToday } from '../lib/content'
 
 export default function StudentDashboard() {
   const { student } = useAuth()
   const [latest, setLatest] = useState<any[] | null>(null)
+  const [upcoming, setUpcoming] = useState<any[] | null>(null)
 
   useEffect(() => {
     supabase.from('notices').select('id, title, category, published_at')
       .eq('status', 'published').order('published_at', { ascending: false, nullsFirst: false }).limit(3)
       .then(({ data }) => setLatest(data ?? []))
+    supabase.from('events').select('id, title, category, event_start, venue')
+      .eq('status', 'published').gte('event_start', startOfToday()).order('event_start', { ascending: true }).limit(3)
+      .then(({ data }) => setUpcoming(data ?? []))
   }, [])
 
   if (!student) return null
   if (student.must_change_password) return <Navigate to="/change-password?first=1" replace />
 
-  const soon = ['Upcoming events', 'Campus drives for my course', 'My registrations']
+  const soon = ['Campus drives for my course', 'My drive registrations']
 
   return (
     <div className="space-y-6">
@@ -50,7 +54,30 @@ export default function StudentDashboard() {
         )}
       </section>
 
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-brand-navy">Upcoming events</h2>
+          <Link to="/student/events" className="text-sm font-semibold text-brand-green">View all</Link>
+        </div>
+        {upcoming === null ? <div className="card text-slate-500">Loading...</div> : upcoming.length === 0 ? (
+          <div className="card text-slate-500">No upcoming events for your course.</div>
+        ) : (
+          <div className="space-y-2">
+            {upcoming.map(ev => (
+              <Link key={ev.id} to="/student/events" className="card block hover:bg-slate-50">
+                <div className="font-semibold text-brand-navy">{ev.title}</div>
+                <div className="text-xs text-slate-500">{eventCatLabel(ev.category)} · {formatDateTime(ev.event_start)}{ev.venue ? ' · ' + ev.venue : ''}</div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Link to="/student/events" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">Events and workshops</h3>
+          <p className="mt-1 text-sm text-slate-600">Register, and see your participation history.</p>
+        </Link>
         <Link to="/student/notices" className="card border-brand-green hover:bg-brand-greenLight">
           <h3 className="font-semibold text-brand-green">Notices</h3>
           <p className="mt-1 text-sm text-slate-600">All placement notices and announcements.</p>
