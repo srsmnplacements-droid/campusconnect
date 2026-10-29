@@ -14,6 +14,10 @@ import ResumePage from './pages/ResumePage'
 import EventsAdmin from './pages/EventsAdmin'
 import EventParticipants from './pages/EventParticipants'
 import StudentEvents from './pages/StudentEvents'
+import CompaniesAdmin from './pages/CompaniesAdmin'
+import DrivesAdmin from './pages/DrivesAdmin'
+import DriveApplicants from './pages/DriveApplicants'
+import StudentDrives from './pages/StudentDrives'
 
 export default function App() {
   return (
@@ -34,6 +38,10 @@ export default function App() {
         <Route path="/admin/events" element={<RequireRole role="admin"><EventsAdmin /></RequireRole>} />
         <Route path="/admin/events/:id" element={<RequireRole role="admin"><EventParticipants /></RequireRole>} />
         <Route path="/student/events" element={<RequireRole role="student"><StudentEvents /></RequireRole>} />
+        <Route path="/admin/companies" element={<RequireRole role="admin"><CompaniesAdmin /></RequireRole>} />
+        <Route path="/admin/drives" element={<RequireRole role="admin"><DrivesAdmin /></RequireRole>} />
+        <Route path="/admin/drives/:id" element={<RequireRole role="admin"><DriveApplicants /></RequireRole>} />
+        <Route path="/student/drives" element={<RequireRole role="student"><StudentDrives /></RequireRole>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

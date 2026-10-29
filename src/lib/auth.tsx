@@ -12,6 +12,7 @@ export interface StudentInfo {
   phone: string | null
   must_change_password: boolean
   profile_completed: boolean
+  course_id: string
   course_code: string
   course_name: string
 }
@@ -71,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const { data: s } = await supabase
       .from('student_profiles')
-      .select('id, register_no, full_name, email, phone, must_change_password, profile_completed, status, courses(code, name)')
+      .select('id, register_no, full_name, email, phone, must_change_password, profile_completed, status, course_id, courses(code, name)')
       .eq('user_id', uid).maybeSingle()
     if (s && (s as any).status === 'active') {
       const c: any = (s as any).courses
@@ -85,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         phone: (s as any).phone,
         must_change_password: (s as any).must_change_password,
         profile_completed: (s as any).profile_completed,
+        course_id: (s as any).course_id,
         course_code: course?.code ?? '',
         course_name: course?.name ?? '',
       })

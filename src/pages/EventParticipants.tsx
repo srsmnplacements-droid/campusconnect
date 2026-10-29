@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Spinner } from '../components/Layout'
 import { downloadCsv } from '../lib/csv'
+import ReportPrint, { printReport } from '../components/ReportPrint'
 import { eventCatLabel, formatDateTime } from '../lib/content'
 
 const one = (x: any) => (Array.isArray(x) ? x[0] : x)
@@ -19,7 +20,7 @@ export default function EventParticipants() {
 
   async function load() {
     const [ev, regs] = await Promise.all([
-      supabase.from('events').select('id, title, category, event_start, venue, status').eq('id', id!).maybeSingle(),
+      supabase.from('events').select('id, title, category, event_start, venue, organiser, status, academic_years(label)').eq('id', id!).maybeSingle(),
       supabase.from('event_registrations')
         .select('id, status, registered_at, student_profiles(register_no, full_name, courses(code)), event_attendance(id, status)')
         .eq('event_id', id!).order('registered_at').limit(500),
@@ -80,6 +81,9 @@ export default function EventParticipants() {
       (!t || r.name.toLowerCase().includes(t) || r.reg.toLowerCase().includes(t)))
   }, [rows, search, showWithdrawn])
 
+  const attLabel = (a: string) => a === 'present' ? 'Present' : a === 'absent' ? 'Absent' : a === 'excused' ? 'Excused' : 'Not marked'
+  const sheet = rows.filter(r => r.status === 'registered')
+
   if (loading) return <Spinner />
   if (!event) return <div className="card">Event not found. <Link to="/admin/events" className="text-brand-green underline">Back to events</Link></div>
 
@@ -104,11 +108,23 @@ export default function EventParticipants() {
         <div className="flex flex-wrap items-center gap-2">
           <button className="btn-green" disabled={busy === 'all'} onClick={markAllPresent}>Mark all unmarked as present</button>
           <button className="btn-outline" onClick={exportCsv}>Export CSV</button>
+          <button className="btn-navy" onClick={() => printReport('Attendance - ' + event.title)}>Export PDF</button>
           <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={showWithdrawn} onChange={e => setShowWithdrawn(e.target.checked)} /> Show withdrawn</label>
         </div>
       </div>
 
       {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+
+      {sheet.length >= 0 && event && (
+        <ReportPrint
+          title={'Attendance sheet: ' + event.title}
+          meta={[eventCatLabel(event.category) + '   |   ' + formatDateTime(event.event_start) + (event.venue ? '   |   Venue: ' + event.venue : ''), ...(event.organiser ? ['Resource person: ' + event.organiser] : []), ...(one(event.academic_years)?.label ? ['Academic year: ' + one(event.academic_years).label] : [])]}
+          columns={[{ label: 'S.No', width: '9mm' }, { label: 'Register no', width: '28mm' }, { label: 'Name' }, { label: 'Course', width: '18mm' }, { label: 'Attendance', width: '24mm' }, { label: 'Signature', width: '28mm' }]}
+          rows={sheet.map((r, i) => [i + 1, r.reg, r.name, r.course, attLabel(r.attendance), ''])}
+          summary={['Registered: ' + sheet.length, 'Present: ' + sheet.filter(r => r.attendance === 'present').length, 'Absent: ' + sheet.filter(r => r.attendance === 'absent').length, 'Excused: ' + sheet.filter(r => r.attendance === 'excused').length]}
+          signatures={['Resource person / Organiser', 'Placement Coordinator']}
+        />
+      )}
 
       {shown.length === 0 ? <div className="card text-slate-500">No participants to show.</div> : (
         <div className="space-y-2">

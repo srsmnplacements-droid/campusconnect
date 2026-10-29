@@ -12,6 +12,7 @@ export default function Home() {
   const [notices, setNotices] = useState<Notice[] | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
   const [events, setEvents] = useState<any[]>([])
+  const [drives, setDrives] = useState<any[]>([])
 
   useEffect(() => {
     if (configMissing) { setNotices([]); return }
@@ -30,6 +31,11 @@ export default function Home() {
       .eq('status', 'published').eq('is_public', true).gte('event_start', startOfToday())
       .order('event_start', { ascending: true }).limit(4)
       .then(({ data }) => setEvents(data ?? []))
+    supabase.from('campus_drives')
+      .select('id, job_title, application_deadline, drive_date, venue, job_location, companies(name)')
+      .eq('status', 'published').eq('is_public', true)
+      .order('created_at', { ascending: false }).limit(4)
+      .then(({ data }) => setDrives(data ?? []))
   }, [])
 
   return (
@@ -72,6 +78,24 @@ export default function Home() {
         )}
       </section>
 
+      {drives.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-xl font-bold text-brand-navy">Upcoming campus drives</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {drives.map(d => (
+              <div key={d.id} className="card">
+                <h3 className="font-semibold text-brand-navy">{(Array.isArray(d.companies) ? d.companies[0] : d.companies)?.name}</h3>
+                <p className="text-sm text-slate-700">{d.job_title}</p>
+                {d.job_location && <p className="text-sm text-slate-600">Location: {d.job_location}</p>}
+                {d.application_deadline && <p className="text-sm text-slate-600">Apply before: {formatDateTime(d.application_deadline)}</p>}
+                {d.drive_date && <p className="text-sm text-slate-600">Drive: {formatDateTime(d.drive_date)}{d.venue ? ' · ' + d.venue : ''}</p>}
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Log in as a student to check eligibility and register.</p>
+        </section>
+      )}
+
       {events.length > 0 && (
         <section>
           <h2 className="mb-3 text-xl font-bold text-brand-navy">Upcoming events and workshops</h2>
@@ -111,7 +135,7 @@ export default function Home() {
 
       <section className="grid gap-3 sm:grid-cols-3">
         {[
-          ['Campus drives', 'Company recruitment drives for your course (coming soon).'],
+          ['Campus drives', 'Company recruitment drives for your course. Register after student login.'],
           ['Training and events', 'Workshops, aptitude training and interview preparation. Register after student login.'],
           ['Resume builder', 'Students can create a professional resume and download it as PDF.'],
         ].map(([t, d]) => (

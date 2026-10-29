@@ -57,7 +57,7 @@ export const isHttpUrl = (s: string) => /^https?:\/\/[^\s]+$/i.test(s)
 const safeName = (n: string) => n.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80)
 
 export async function uploadAttachment(
-  file: File, kind: Kind | 'events', recordId: string, yearId: string | null, yearLabel: string,
+  file: File, kind: Kind | 'events' | 'companies' | 'drives', recordId: string, yearId: string | null, yearLabel: string,
 ): Promise<string> {
   if (file.size > MAX_FILE) throw new Error('File is too large. Maximum size is 5 MB.')
   if (!ALLOWED_TYPES.includes(file.type)) throw new Error('Only PDF, PNG, JPG or WEBP files are allowed.')
@@ -127,3 +127,13 @@ export function startOfToday(): string {
   d.setHours(0, 0, 0, 0)
   return d.toISOString()
 }
+
+// ---------- Recruitment drives ----------
+export const DRIVE_STATUS: Record<string, { label: string; cls: string }> = {
+  registered: { label: 'Registered', cls: 'bg-blue-100 text-blue-800' },
+  shortlisted: { label: 'Shortlisted', cls: 'bg-amber-100 text-amber-800' },
+  selected: { label: 'Selected', cls: 'bg-green-100 text-green-800' },
+  not_selected: { label: 'Not selected', cls: 'bg-red-100 text-red-700' },
+  withdrawn: { label: 'Withdrawn', cls: 'bg-slate-200 text-slate-600' },
+}
+export const driveStatusLabel = (v: string) => DRIVE_STATUS[v]?.label ?? v
