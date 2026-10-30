@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ReactNode } from 'react'
 import { useAuth } from '../lib/auth'
+import InstallBanner from './InstallBanner'
 import { APP_NAME, COLLEGE_ADDRESS, COLLEGE_NAME, COLLEGE_SHORT, CONTACT_EMAIL, COORDINATORS } from '../config'
 
 export function Spinner({ text = 'Loading...' }: { text?: string }) {
@@ -53,6 +54,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
+      <InstallBanner />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
 
       <footer className="bg-brand-navy text-slate-300">
