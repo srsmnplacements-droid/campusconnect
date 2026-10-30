@@ -6,9 +6,11 @@ function safeCell(v: unknown): string {
   return /^[=@]|^[+\-][^0-9\s]/.test(s) ? "'" + s : s
 }
 
-export function downloadCsv(filename: string, header: string[], rows: unknown[][]) {
-  const csv = Papa.unparse({ fields: header, data: rows.map(r => r.map(safeCell)) })
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
+export function toCsv(header: string[], rows: unknown[][]): string {
+  return Papa.unparse({ fields: header, data: rows.map(r => r.map(safeCell)) })
+}
+
+export function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -16,5 +18,9 @@ export function downloadCsv(filename: string, header: string[], rows: unknown[][
   document.body.appendChild(a)
   a.click()
   a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
+}
+
+export function downloadCsv(filename: string, header: string[], rows: unknown[][]) {
+  downloadBlob(filename, new Blob(['\ufeff' + toCsv(header, rows)], { type: 'text/csv;charset=utf-8' }))
 }

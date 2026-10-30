@@ -21,10 +21,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       <header className="bg-brand-navy text-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="flex items-center gap-3">
-            {/* Logo area: replace this circle with the college logo later */}
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-green text-sm font-bold">
-              SR
-            </div>
+            <img src={import.meta.env.BASE_URL + 'logo.png'} alt="SRSMN GFGC Barkur logo"
+              className="h-11 w-11 shrink-0 rounded-full bg-white object-contain p-0.5" />
             <div className="leading-tight">
               <div className="text-base font-bold sm:text-lg">{APP_NAME}</div>
               <div className="text-xs text-slate-300 sm:text-sm">{COLLEGE_SHORT} Placement Hub</div>

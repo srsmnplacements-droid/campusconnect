@@ -37,7 +37,7 @@ export default function StorageDashboard() {
     Promise.all([
       supabase.rpc('admin_storage_summary'),
       supabase.rpc('admin_year_summary'),
-      supabase.from('uploaded_files').select('id, path, size_bytes, linked_table, created_at, academic_years(label)').order('size_bytes', { ascending: false }).limit(10),
+      supabase.from('uploaded_files').select('id, bucket, path, size_bytes, linked_table, created_at, academic_years(label)').order('size_bytes', { ascending: false }).limit(10),
       supabase.from('uploaded_files').select('*', { count: 'exact', head: true }),
     ]).then(([s, y, b, c]: any[]) => {
       const e = s.error ?? y.error ?? b.error
@@ -50,7 +50,7 @@ export default function StorageDashboard() {
   if (loading) return <Spinner />
   const fileCount = Number(sum?.file_count ?? 0)
   const nice = (p: string) => p.split('/').pop() ?? p
-  const what: Record<string, string> = { notices: 'Notice', placement_resources: 'Resource', events: 'Event', drives: 'Drive', companies: 'Company logo' }
+  const what: Record<string, string> = { notices: 'Notice', placement_resources: 'Resource', events: 'Event', drives: 'Drive', companies: 'Company logo', offer_letters: 'Offer letter' }
 
   return (
     <div className="space-y-4">
@@ -106,7 +106,7 @@ export default function StorageDashboard() {
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="font-semibold">{fmt(f.size_bytes)}</span>
-                  <button className="text-brand-green underline" onClick={() => openAttachment(f.path).catch((e: any) => setError(e.message))}>Open</button>
+                  <button className="text-brand-green underline" onClick={() => openAttachment(f.path, f.bucket).catch((e: any) => setError(e.message))}>Open</button>
                 </div>
               </li>
             ))}

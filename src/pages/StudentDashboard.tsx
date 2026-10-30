@@ -9,6 +9,7 @@ export default function StudentDashboard() {
   const [latest, setLatest] = useState<any[] | null>(null)
   const [upcoming, setUpcoming] = useState<any[] | null>(null)
   const [drives, setDrives] = useState<any[] | null>(null)
+  const [offerCount, setOfferCount] = useState(0)
 
   useEffect(() => {
     supabase.from('notices').select('id, title, category, published_at')
@@ -20,6 +21,8 @@ export default function StudentDashboard() {
     supabase.from('campus_drives').select('id, job_title, application_deadline, companies(name), drive_eligible_courses(course_id)')
       .eq('status', 'published').order('created_at', { ascending: false }).limit(20)
       .then(({ data }) => setDrives(data ?? []))
+    supabase.from('offer_letters').select('*', { count: 'exact', head: true })
+      .then(({ count }) => setOfferCount(count ?? 0))
   }, [])
 
   if (!student) return null
@@ -98,6 +101,12 @@ export default function StudentDashboard() {
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {offerCount > 0 && (
+          <Link to="/student/offers" className="card border-brand-green bg-brand-greenLight hover:opacity-90">
+            <h3 className="font-semibold text-brand-greenDark">My offer letters ({offerCount})</h3>
+            <p className="mt-1 text-sm text-slate-700">Open the offer letters added by the Placement Cell.</p>
+          </Link>
+        )}
         <Link to="/student/drives" className="card border-brand-green hover:bg-brand-greenLight">
           <h3 className="font-semibold text-brand-green">Campus drives</h3>
           <p className="mt-1 text-sm text-slate-600">Check eligibility, register, and track your status.</p>

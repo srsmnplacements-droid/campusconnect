@@ -14,3 +14,11 @@ export async function callAdmin<T = any>(body: Record<string, unknown>): Promise
   if (!data || data.ok === false) throw new Error(data?.error ?? 'Unknown error')
   return data as T
 }
+
+// Calls the secure archive / deletion server function (admin only).
+export async function callArchive<T = any>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('admin-archive', { body })
+  if (error) throw new Error('Could not reach the archive function. ' + error.message)
+  if (!data || data.ok === false) throw new Error(data?.error ?? 'Unknown error')
+  return data as T
+}

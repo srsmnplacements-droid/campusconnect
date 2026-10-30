@@ -77,14 +77,14 @@ export async function uploadAttachment(
 }
 
 // Deletes the real file from storage, then its registry row.
-export async function removeAttachment(path: string): Promise<void> {
-  const { error } = await supabase.storage.from(BUCKET).remove([path])
+export async function removeAttachment(path: string, bucket: string = BUCKET): Promise<void> {
+  const { error } = await supabase.storage.from(bucket).remove([path])
   if (error) throw new Error('Could not delete the file: ' + error.message)
-  await supabase.from('uploaded_files').delete().eq('path', path)
+  await supabase.from('uploaded_files').delete().eq('bucket', bucket).eq('path', path)
 }
 
-export async function openAttachment(path: string): Promise<void> {
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 120)
+export async function openAttachment(path: string, bucket: string = BUCKET): Promise<void> {
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 120)
   if (error || !data) throw new Error('Could not open the file. ' + (error?.message ?? ''))
   const a = document.createElement('a')
   a.href = data.signedUrl

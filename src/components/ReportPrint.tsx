@@ -25,9 +25,12 @@ export default function ReportPrint({ title, meta = [], columns, rows, summary =
   const cell = { border: '1px solid #9ca3af', padding: '3px 5px', verticalAlign: 'top' as const }
   return createPortal(
     <div style={{ width: '210mm', boxSizing: 'border-box', padding: '12mm 12mm 14mm', background: '#fff', color: '#111', fontFamily: 'Calibri, Carlito, Arial, Helvetica, sans-serif', fontSize: '11.5px', lineHeight: 1.35 }}>
-      <div style={{ textAlign: 'center', borderBottom: '2px solid #111', paddingBottom: '6px' }}>
-        <div style={{ fontSize: '14px', fontWeight: 700 }}>{COLLEGE_NAME}, Barkur</div>
-        <div style={{ fontSize: '12px' }}>Placement Cell</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', borderBottom: '2px solid #111', paddingBottom: '6px' }}>
+        <img src={import.meta.env.BASE_URL + 'logo.png'} alt="" style={{ height: '17mm', width: '17mm', objectFit: 'contain' }} />
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '14px', fontWeight: 700 }}>{COLLEGE_NAME}, Barkur</div>
+          <div style={{ fontSize: '12px' }}>Placement Cell</div>
+        </div>
       </div>
       <h1 style={{ margin: '10px 0 4px', fontSize: '16px' }}>{title}</h1>
       {meta.map((m, i) => <div key={i} style={{ fontSize: '11.5px' }}>{m}</div>)}

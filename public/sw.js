@@ -1,9 +1,9 @@
 // CampusConnect service worker.
 // It does NOT store student data. It only shows a friendly page when the phone is offline.
-const CACHE = 'campusconnect-offline-v1'
+const CACHE = 'campusconnect-offline-v2'
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.add('./offline.html')))
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./offline.html', './logo.png'])))
   self.skipWaiting()
 })
 

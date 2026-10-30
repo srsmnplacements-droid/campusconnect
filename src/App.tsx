@@ -22,6 +22,9 @@ import YearsAdmin from './pages/YearsAdmin'
 import CoursesAdmin from './pages/CoursesAdmin'
 import StorageDashboard from './pages/StorageDashboard'
 import ActivityLog from './pages/ActivityLog'
+import ArchivePage from './pages/ArchivePage'
+import OffersAdmin from './pages/OffersAdmin'
+import StudentOffers from './pages/StudentOffers'
 
 export default function App() {
   return (
@@ -50,6 +53,9 @@ export default function App() {
         <Route path="/admin/courses" element={<RequireRole role="admin"><CoursesAdmin /></RequireRole>} />
         <Route path="/admin/storage" element={<RequireRole role="admin"><StorageDashboard /></RequireRole>} />
         <Route path="/admin/activity" element={<RequireRole role="admin"><ActivityLog /></RequireRole>} />
+        <Route path="/admin/archive" element={<RequireRole role="admin"><ArchivePage /></RequireRole>} />
+        <Route path="/admin/offers" element={<RequireRole role="admin"><OffersAdmin /></RequireRole>} />
+        <Route path="/student/offers" element={<RequireRole role="student"><StudentOffers /></RequireRole>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

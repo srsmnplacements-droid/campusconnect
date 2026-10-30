@@ -95,12 +95,14 @@ export default function AdminDashboard() {
           <h3 className="font-semibold text-brand-green">Activity history</h3>
           <p className="mt-1 text-sm text-slate-600">Protected record of admin actions.</p>
         </Link>
-        {['Academic year archive'].map(t => (
-          <div key={t} className="card">
-            <h3 className="font-semibold text-brand-green">{t}</h3>
-            <p className="mt-1 text-sm text-slate-500">Coming in the next phases.</p>
-          </div>
-        ))}
+        <Link to="/admin/offers" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">Offer letters</h3>
+          <p className="mt-1 text-sm text-slate-600">Offer letters uploaded for selected students.</p>
+        </Link>
+        <Link to="/admin/archive" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">Academic year archive</h3>
+          <p className="mt-1 text-sm text-slate-600">Download a yearly backup ZIP, then clear old data.</p>
+        </Link>
       </section>
       <Link to="/change-password" className="btn-outline">Change my password</Link>
     </div>
