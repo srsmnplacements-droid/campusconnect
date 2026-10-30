@@ -19,3 +19,10 @@ export const STUDENT_EMAIL_DOMAIN = 'students.srsmn-placement.in'
 export function studentLoginEmail(registerNo: string): string {
   return registerNo.trim().toLowerCase().replace(/\s+/g, '') + '@' + STUDENT_EMAIL_DOMAIN
 }
+
+// Free-plan limits used by the Storage dashboard. These can change, so check
+// Supabase's pricing page now and then and update the numbers here.
+export const STORAGE_LIMITS = {
+  databaseMB: 500,
+  filesMB: 1024,
+}

@@ -79,7 +79,23 @@ export default function AdminDashboard() {
           <h3 className="font-semibold text-brand-green">Companies</h3>
           <p className="mt-1 text-sm text-slate-600">Company names, websites and logos.</p>
         </Link>
-        {['Academic year archive', 'Storage dashboard'].map(t => (
+        <Link to="/admin/years" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">Academic years</h3>
+          <p className="mt-1 text-sm text-slate-600">Add years and choose the current one.</p>
+        </Link>
+        <Link to="/admin/courses" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">Courses</h3>
+          <p className="mt-1 text-sm text-slate-600">Edit courses, semesters and duration.</p>
+        </Link>
+        <Link to="/admin/storage" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">Storage dashboard</h3>
+          <p className="mt-1 text-sm text-slate-600">Database and file usage, with warnings.</p>
+        </Link>
+        <Link to="/admin/activity" className="card border-brand-green hover:bg-brand-greenLight">
+          <h3 className="font-semibold text-brand-green">Activity history</h3>
+          <p className="mt-1 text-sm text-slate-600">Protected record of admin actions.</p>
+        </Link>
+        {['Academic year archive'].map(t => (
           <div key={t} className="card">
             <h3 className="font-semibold text-brand-green">{t}</h3>
             <p className="mt-1 text-sm text-slate-500">Coming in the next phases.</p>

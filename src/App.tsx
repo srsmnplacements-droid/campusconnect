@@ -18,6 +18,10 @@ import CompaniesAdmin from './pages/CompaniesAdmin'
 import DrivesAdmin from './pages/DrivesAdmin'
 import DriveApplicants from './pages/DriveApplicants'
 import StudentDrives from './pages/StudentDrives'
+import YearsAdmin from './pages/YearsAdmin'
+import CoursesAdmin from './pages/CoursesAdmin'
+import StorageDashboard from './pages/StorageDashboard'
+import ActivityLog from './pages/ActivityLog'
 
 export default function App() {
   return (
@@ -42,6 +46,10 @@ export default function App() {
         <Route path="/admin/drives" element={<RequireRole role="admin"><DrivesAdmin /></RequireRole>} />
         <Route path="/admin/drives/:id" element={<RequireRole role="admin"><DriveApplicants /></RequireRole>} />
         <Route path="/student/drives" element={<RequireRole role="student"><StudentDrives /></RequireRole>} />
+        <Route path="/admin/years" element={<RequireRole role="admin"><YearsAdmin /></RequireRole>} />
+        <Route path="/admin/courses" element={<RequireRole role="admin"><CoursesAdmin /></RequireRole>} />
+        <Route path="/admin/storage" element={<RequireRole role="admin"><StorageDashboard /></RequireRole>} />
+        <Route path="/admin/activity" element={<RequireRole role="admin"><ActivityLog /></RequireRole>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
