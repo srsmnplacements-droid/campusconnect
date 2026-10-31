@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Spinner } from '../components/Layout'
-import { formatDate, openAttachment, removeAttachment } from '../lib/content'
-import { OFFER_BUCKET } from '../lib/offers'
+import { formatDate, openAttachment } from '../lib/content'
+import { OFFER_BUCKET, cleanupOfferFile } from '../lib/offers'
 
 const one = (x: any) => (Array.isArray(x) ? x[0] : x)
 
@@ -22,7 +22,7 @@ export default function OffersAdmin() {
   useEffect(() => {
     setLoading(true)
     let q: any = supabase.from('offer_letters')
-      .select('id, drive_id, job_title, file_path, size_bytes, notes, created_at, student_profiles(register_no, full_name, courses(code)), companies(name), academic_years(label)')
+      .select('id, drive_id, job_title, file_path, size_bytes, notes, is_shared, created_at, student_profiles(register_no, full_name, courses(code)), companies(name), academic_years(label)')
       .order('created_at', { ascending: false }).limit(300)
     if (yearId) q = q.eq('academic_year_id', yearId)
     q.then(({ data, error: e }: any) => { setError(e ? e.message : ''); setRows(data ?? []); setLoading(false) })
@@ -37,12 +37,12 @@ export default function OffersAdmin() {
   }, [rows, search])
 
   async function remove(r: any) {
-    if (!window.confirm('Delete this offer letter file permanently?')) return
+    if (!window.confirm(r.is_shared ? 'Remove the common PDF from this student? Other students keep access.' : 'Delete this offer letter file permanently?')) return
     setError('')
     try {
-      await removeAttachment(r.file_path, OFFER_BUCKET)
       const { error: e } = await supabase.from('offer_letters').delete().eq('id', r.id)
       if (e) throw new Error(e.message)
+      await cleanupOfferFile(r.file_path)
       setReload(n => n + 1)
     } catch (ex: any) { setError(ex.message) }
   }
@@ -71,7 +71,7 @@ export default function OffersAdmin() {
                 <div>
                   <div className="font-semibold text-brand-navy">{p.full_name} <span className="text-sm font-normal text-slate-600">({p.register_no} · {one(p.courses)?.code})</span></div>
                   <div className="text-sm text-slate-700">{one(r.companies)?.name}{r.job_title ? ' - ' + r.job_title : ''}</div>
-                  <div className="text-xs text-slate-500">{one(r.academic_years)?.label} · added {formatDate(r.created_at)}</div>
+                  <div className="text-xs text-slate-500">{one(r.academic_years)?.label} · added {formatDate(r.created_at)}{r.is_shared ? ' · common PDF' : ''}</div>
                 </div>
                 <div className="flex gap-2">
                   <button className="btn-navy !py-1.5" onClick={() => openAttachment(r.file_path, OFFER_BUCKET).catch((e: any) => setError(e.message))}>View</button>

@@ -85,7 +85,7 @@ export async function buildAndExport(input: ExportInput, progress: Progress): Pr
   })
   const offers = await scoped(ids => {
     let q = supabase.from('offer_letters')
-      .select('id, student_id, job_title, file_name, file_path, size_bytes, notes, created_at, student_profiles(register_no, full_name, courses(code)), companies(name)')
+      .select('id, student_id, job_title, file_name, file_path, size_bytes, notes, is_shared, created_at, student_profiles(register_no, full_name, courses(code)), companies(name)')
       .eq('academic_year_id', y).order('id')
     if (ids) q = q.in('student_id', ids)
     return q
@@ -118,6 +118,14 @@ export async function buildAndExport(input: ExportInput, progress: Progress): Pr
   } else if (offers.length) {
     files = await fetchIn(offers.map((o: any) => o.id), ids => supabase.from('uploaded_files').select('*').eq('linked_table', 'offer_letters').in('linked_id', ids).order('id'))
   }
+
+  // common PDFs shared by several students: put them in the ZIP, but they are not counted or deleted in course mode
+  let extraFiles: any[] = []
+  if (!wholeYear) {
+    const sharedPaths = Array.from(new Set(offers.filter((o: any) => o.is_shared).map((o: any) => o.file_path)))
+    if (sharedPaths.length) extraFiles = await fetchIn(sharedPaths, ids => supabase.from('uploaded_files').select('*').in('path', ids).order('id'))
+  }
+  const zipFiles = [...files, ...extraFiles]
 
   // ---------- counts (must match the database, checked by the server) ----------
   const counts: Record<string, number> = {
@@ -174,18 +182,19 @@ export async function buildAndExport(input: ExportInput, progress: Progress): Pr
       rows: results.map((r: any) => { const p = sp(r); return [p.register_no, p.full_name, one(p.courses)?.code, coName(r), r.job_title, r.package_details, r.outcome, r.created_at] }) },
     { path: 'data/07_placement/offer_letters.csv',
       header: ['register_no', 'name', 'course', 'company', 'job_title', 'file_in_zip', 'notes', 'uploaded_at'],
-      rows: offers.map((o: any) => { const p = sp(o); return [p.register_no, p.full_name, one(p.courses)?.code, coName(o), o.job_title, o.file_path ? 'files/offer_letters/' + (p.register_no ?? 'unknown') + '/' + o.file_path.split('/').pop() : '', o.notes, o.created_at] }) },
+      rows: offers.map((o: any) => { const p = sp(o); return [p.register_no, p.full_name, one(p.courses)?.code, coName(o), o.job_title, o.file_path ? (o.is_shared ? 'files/offer_letters/_common/' : 'files/offer_letters/' + (p.register_no ?? 'unknown') + '/') + o.file_path.split('/').pop() : '', o.notes, o.created_at] }) },
   ]
 
   // ---------- plan the ZIP parts ----------
   const folder: Record<string, string> = { notices: 'notices', placement_resources: 'resources', events: 'events', drives: 'drives' }
   const zipPathOf = (f: any) => {
     const base = String(f.path).split('/').pop()
+    if (f.linked_table === 'offer_letters_shared') return 'files/offer_letters/_common/' + base
     if (f.linked_table === 'offer_letters') return 'files/offer_letters/' + (regNoByOffer.get(f.linked_id) ?? 'unknown') + '/' + base
     return 'files/' + (folder[f.linked_table] ?? 'other') + '/' + base
   }
   const parts: { files: any[]; bytes: number }[] = [{ files: [], bytes: 0 }]
-  for (const f of files) {
+  for (const f of zipFiles) {
     const cur = parts[parts.length - 1]
     const size = Number(f.size_bytes ?? 0)
     if (cur.files.length > 0 && cur.bytes + size > PART_LIMIT) parts.push({ files: [], bytes: 0 })
@@ -232,7 +241,7 @@ export async function buildAndExport(input: ExportInput, progress: Progress): Pr
   ].filter(l => l !== undefined).join('\n')
 
   // ---------- build the ZIP parts ----------
-  const total = files.length
+  const total = zipFiles.length
   let doneFiles = 0
   const built: { name: string; blob: Blob }[] = []
   for (let i = 0; i < parts.length; i++) {

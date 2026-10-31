@@ -6,7 +6,7 @@ import ReportPrint, { printReport } from '../components/ReportPrint'
 import { downloadCsv } from '../lib/csv'
 import { DRIVE_STATUS, driveStatusLabel, formatDateTime, openAttachment, removeAttachment } from '../lib/content'
 import Modal from '../components/Modal'
-import { OFFER_BUCKET, uploadOffer } from '../lib/offers'
+import { OFFER_BUCKET, OFFER_MAX, cleanupOfferFile, uploadOffer, uploadSharedOffer } from '../lib/offers'
 
 const one = (x: any) => (Array.isArray(x) ? x[0] : x)
 const STATUSES = ['registered', 'shortlisted', 'selected', 'not_selected', 'withdrawn']
@@ -25,6 +25,8 @@ export default function DriveApplicants() {
   const [busy, setBusy] = useState('')
   const [offers, setOffers] = useState<Record<string, any>>({})
   const [offerFor, setOfferFor] = useState<any | null>(null)
+  const [commonOpen, setCommonOpen] = useState(false)
+  const [info, setInfo] = useState('')
   const [offerTick, setOfferTick] = useState(0)
 
   async function load() {
@@ -144,10 +146,12 @@ export default function DriveApplicants() {
         <div className="flex flex-wrap gap-2">
           <button className="btn-outline" onClick={exportCsv}>Export CSV</button>
           <button className="btn-navy" onClick={exportPdf}>Export PDF</button>
+          <button className="btn-green" onClick={() => { setInfo(''); setCommonOpen(true) }}>Upload common offer PDF</button>
         </div>
         <p className="text-xs text-slate-500">Exports include only the {shown.length} applicant(s) currently shown. For the PDF, choose <b>Save as PDF</b> in the print window.</p>
       </div>
 
+      {info && <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800">{info}</div>}
       {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       {shown.length === 0 ? <div className="card text-slate-500">No applicants to show.</div> : (
@@ -173,6 +177,8 @@ export default function DriveApplicants() {
         </div>
       )}
 
+      {commonOpen && <CommonOfferModal drive={drive} rows={rows} offers={offers} onClose={() => setCommonOpen(false)}
+        onSaved={(n) => { setCommonOpen(false); setOfferTick(t => t + 1); setInfo('The common PDF was shared with ' + n + ' student' + (n === 1 ? '' : 's') + '.'); load() }} />}
       {offerFor && <OfferModal drive={drive} row={offerFor} existing={offers[offerFor.student_id]}
         onClose={() => setOfferFor(null)} onSaved={() => { setOfferFor(null); setOfferTick(n => n + 1) }} />}
 
@@ -202,7 +208,7 @@ function OfferModal({ drive, row, existing, onClose, onSaved }: { drive: any; ro
 
   function pick(f: File | null) {
     setErr('')
-    if (f && f.size > 5 * 1024 * 1024) { setErr('File is too large. Maximum size is 5 MB.'); return }
+    if (f && f.size > OFFER_MAX) { setErr('File is too large. Maximum size is 15 MB.'); return }
     if (f && !['application/pdf', 'image/png', 'image/jpeg', 'image/webp'].includes(f.type)) { setErr('Only PDF, PNG, JPG or WEBP files are allowed.'); return }
     setFile(f)
   }
@@ -216,7 +222,7 @@ function OfferModal({ drive, row, existing, onClose, onSaved }: { drive: any; ro
     try {
       if (file) newPath = await uploadOffer(file, row.student_id, id, drive.academic_year_id)
       const payload: any = { notes: notes.trim() || null }
-      if (file && newPath) Object.assign(payload, { file_path: newPath, file_name: file.name, size_bytes: file.size, mime_type: file.type })
+      if (file && newPath) Object.assign(payload, { file_path: newPath, file_name: file.name, size_bytes: file.size, mime_type: file.type, is_shared: false })
       let dbErr: any
       if (existing) {
         ({ error: dbErr } = await supabase.from('offer_letters').update(payload).eq('id', id))
@@ -231,7 +237,7 @@ function OfferModal({ drive, row, existing, onClose, onSaved }: { drive: any; ro
         if (newPath) await removeAttachment(newPath, OFFER_BUCKET).catch(() => {})
         throw new Error(dbErr.message)
       }
-      if (file && existing?.file_path) await removeAttachment(existing.file_path, OFFER_BUCKET).catch(() => {})
+      if (file && existing?.file_path) await cleanupOfferFile(existing.file_path).catch(() => {})
       const { error: pe } = await supabase.from('placement_results').update({ outcome }).eq('drive_id', drive.id).eq('student_id', row.student_id)
       if (pe) throw new Error('The letter was saved, but the outcome could not be updated: ' + pe.message)
       onSaved()
@@ -243,9 +249,9 @@ function OfferModal({ drive, row, existing, onClose, onSaved }: { drive: any; ro
     if (!window.confirm('Delete this offer letter file permanently?')) return
     setBusy(true); setErr('')
     try {
-      await removeAttachment(existing.file_path, OFFER_BUCKET)
       const { error } = await supabase.from('offer_letters').delete().eq('id', existing.id)
       if (error) throw new Error(error.message)
+      await cleanupOfferFile(existing.file_path)
       onSaved()
     } catch (ex: any) { setErr(ex.message) }
     setBusy(false)
@@ -257,14 +263,14 @@ function OfferModal({ drive, row, existing, onClose, onSaved }: { drive: any; ro
         <p className="text-sm text-slate-600">{row.reg} &middot; {row.course}. Only this student and the Placement Cell can open this file.</p>
         {existing && (
           <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 text-sm">
-            <span className="flex-1">A letter is already saved{existing.file_name ? ': ' + existing.file_name : ''}.</span>
+            <span className="flex-1">{existing.is_shared ? 'A common PDF shared with other students is linked' : 'A letter is already saved'}{existing.file_name ? ': ' + existing.file_name : ''}.</span>
             <button type="button" className="font-semibold text-brand-green underline" onClick={() => openAttachment(existing.file_path, OFFER_BUCKET).catch((e: any) => setErr(e.message))}>View</button>
           </div>
         )}
         <div>
-          <label className="mb-1 block text-sm font-medium">{existing ? 'Replace with a new file (optional)' : 'Offer letter file'}</label>
+          <label className="mb-1 block text-sm font-medium">{existing ? 'Replace with this student\'s own letter (optional)' : 'Offer letter file'}</label>
           <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="block w-full text-sm" onChange={e => pick(e.target.files?.[0] ?? null)} />
-          <p className="mt-1 text-xs text-slate-500">PDF, PNG, JPG or WEBP. Maximum 5 MB. A phone photo of the letter works too.</p>
+          <p className="mt-1 text-xs text-slate-500">PDF, PNG, JPG or WEBP. Maximum 15 MB. A phone photo of the letter works too.</p>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Outcome</label>
@@ -281,7 +287,121 @@ function OfferModal({ drive, row, existing, onClose, onSaved }: { drive: any; ro
         </div>
         {err && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{err}</div>}
         <button className="btn-green w-full" disabled={busy} onClick={save}>{busy ? 'Saving...' : 'Save'}</button>
-        {existing && <button type="button" className="w-full text-sm text-red-600 underline" disabled={busy} onClick={remove}>Delete this offer letter</button>}
+        {existing && <button type="button" className="w-full text-sm text-red-600 underline" disabled={busy} onClick={remove}>{existing.is_shared ? 'Remove the common PDF from this student' : 'Delete this offer letter'}</button>}
+      </div>
+    </Modal>
+  )
+}
+
+function CommonOfferModal({ drive, rows, offers, onClose, onSaved }:
+  { drive: any; rows: any[]; offers: Record<string, any>; onClose: () => void; onSaved: (n: number) => void }) {
+  const list = rows.filter(r => r.status !== 'withdrawn')
+  const free = list.filter(r => !offers[r.student_id])
+  const [picked, setPicked] = useState<string[]>(free.filter(r => r.status === 'selected').map(r => r.student_id))
+  const [file, setFile] = useState<File | null>(null)
+  const [notes, setNotes] = useState('')
+  const [markSelected, setMarkSelected] = useState(true)
+  const [agree, setAgree] = useState(false)
+  const [search, setSearch] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const shownList = list.filter(r => { const t = search.trim().toLowerCase(); return !t || r.name.toLowerCase().includes(t) || r.reg.toLowerCase().includes(t) })
+  const toggle = (sid: string) => setPicked(p => p.includes(sid) ? p.filter(x => x !== sid) : [...p, sid])
+
+  function pick(f: File | null) {
+    setErr('')
+    if (f && f.size > OFFER_MAX) { setErr('File is too large. Maximum size is 15 MB.'); return }
+    if (f && !['application/pdf', 'image/png', 'image/jpeg', 'image/webp'].includes(f.type)) { setErr('Only PDF, PNG, JPG or WEBP files are allowed.'); return }
+    setFile(f)
+  }
+
+  async function save() {
+    setErr('')
+    if (!file) { setErr('Please choose the PDF file.'); return }
+    if (picked.length === 0) { setErr('Please tick at least one student.'); return }
+    if (!agree) { setErr('Please tick the box to confirm the privacy notice.'); return }
+    setBusy(true)
+    let path: string | null = null
+    try {
+      path = await uploadSharedOffer(file, drive.id, drive.academic_year_id)
+      const { data: u } = await supabase.auth.getUser()
+      const recs = picked.map(sid => ({
+        id: crypto.randomUUID(), academic_year_id: drive.academic_year_id, drive_id: drive.id, student_id: sid,
+        company_id: drive.company_id, job_title: drive.job_title, file_path: path, file_name: file.name,
+        size_bytes: file.size, mime_type: file.type, notes: notes.trim() || null, is_shared: true, uploaded_by: u.user?.id ?? null,
+      }))
+      const { error } = await supabase.from('offer_letters').insert(recs)
+      if (error) { await cleanupOfferFile(path).catch(() => {}); throw new Error(error.message) }
+
+      if (markSelected) {
+        const toMark = list.filter(r => picked.includes(r.student_id) && r.status !== 'selected')
+        if (toMark.length) {
+          const { error: e1 } = await supabase.from('drive_registrations').update({ status: 'selected' }).in('id', toMark.map(r => r.id))
+          if (e1) throw new Error('The PDF was shared, but the status could not be changed: ' + e1.message)
+          const sids = toMark.map(r => r.student_id)
+          await supabase.from('placement_results').delete().eq('drive_id', drive.id).in('student_id', sids)
+          const { error: e2 } = await supabase.from('placement_results').insert(sids.map(sid => ({
+            academic_year_id: drive.academic_year_id, drive_id: drive.id, student_id: sid, company_id: drive.company_id,
+            job_title: drive.job_title, package_details: drive.package_details, outcome: 'selected',
+          })))
+          if (e2) throw new Error('The PDF was shared, but the placement results could not be added: ' + e2.message)
+        }
+      }
+      onSaved(picked.length)
+    } catch (ex: any) { setErr(ex.message) }
+    setBusy(false)
+  }
+
+  return (
+    <Modal title="Upload common offer PDF" onClose={onClose}>
+      <div className="space-y-3">
+        <p className="text-sm text-slate-600">Use this when the company sends <b>one PDF for many students</b>. It is stored once, and each student you tick can open it.</p>
+        <div>
+          <label className="mb-1 block text-sm font-medium">PDF file</label>
+          <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="block w-full text-sm" onChange={e => pick(e.target.files?.[0] ?? null)} />
+          <p className="mt-1 text-xs text-slate-500">Maximum 15 MB.</p>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Students who can open it ({picked.length} ticked)</label>
+          <input className="input mb-2" placeholder="Search" value={search} onChange={e => setSearch(e.target.value)} />
+          <div className="mb-2 flex flex-wrap gap-2 text-xs">
+            <button type="button" className="btn-outline !px-2 !py-1" onClick={() => setPicked(free.filter(r => r.status === 'selected').map(r => r.student_id))}>All selected students</button>
+            <button type="button" className="btn-outline !px-2 !py-1" onClick={() => setPicked(free.map(r => r.student_id))}>All applicants</button>
+            <button type="button" className="btn-outline !px-2 !py-1" onClick={() => setPicked([])}>Clear</button>
+          </div>
+          <div className="max-h-60 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
+            {shownList.length === 0 && <div className="p-3 text-sm text-slate-500">No applicants.</div>}
+            {shownList.map(r => {
+              const has = !!offers[r.student_id]
+              return (
+                <label key={r.id} className={'flex items-center gap-3 p-2 text-sm ' + (has ? 'opacity-50' : 'cursor-pointer')}>
+                  <input type="checkbox" className="h-4 w-4" disabled={has} checked={picked.includes(r.student_id)} onChange={() => toggle(r.student_id)} />
+                  <span className="flex-1"><b>{r.name}</b> <span className="text-slate-500">{r.reg} · {r.course}</span></span>
+                  <span className="text-xs text-slate-500">{has ? 'already has a letter' : driveStatusLabel(r.status)}</span>
+                </label>
+              )
+            })}
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Notes (optional)</label>
+          <input className="input" maxLength={500} value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. Offer letters for all selected students" />
+        </div>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-1" checked={markSelected} onChange={e => setMarkSelected(e.target.checked)} />
+          <span>Also mark the ticked students as <b>Selected</b> (adds them to the placement results).</span>
+        </label>
+        <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+          <b>Privacy notice.</b> Everyone you tick can open this whole file. If it contains other students' names or letters, they will see them too.
+          If that is a problem, split the PDF first and upload each student's page separately.
+          <label className="mt-2 flex items-start gap-2">
+            <input type="checkbox" className="mt-1" checked={agree} onChange={e => setAgree(e.target.checked)} />
+            <span>I understand and want to share this file with the ticked students.</span>
+          </label>
+        </div>
+        {err && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{err}</div>}
+        <button className="btn-green w-full" disabled={busy} onClick={save}>{busy ? 'Uploading...' : 'Upload and share'}</button>
       </div>
     </Modal>
   )

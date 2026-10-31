@@ -16,7 +16,7 @@ export default function StudentOffers() {
 
   useEffect(() => {
     if (!student) return
-    supabase.from('offer_letters').select('id, job_title, file_name, file_path, notes, created_at, companies(name)')
+    supabase.from('offer_letters').select('id, job_title, file_name, file_path, notes, is_shared, created_at, companies(name)')
       .eq('student_id', student.id).order('created_at', { ascending: false })
       .then(({ data, error: e }) => { if (e) setError(e.message); setRows(data ?? []); setLoading(false) })
   }, [student])
@@ -35,6 +35,7 @@ export default function StudentOffers() {
             <div key={r.id} className="card">
               <div className="font-semibold text-brand-navy">{one(r.companies)?.name ?? 'Company'}{r.job_title ? ' - ' + r.job_title : ''}</div>
               <div className="text-xs text-slate-500">Added {formatDate(r.created_at)}</div>
+              {r.is_shared && <p className="mt-1 text-xs text-slate-500">This is a common file shared with the students selected in this drive.</p>}
               {r.notes && <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{r.notes}</p>}
               <button className="btn-navy mt-2 !py-1.5" onClick={() => openAttachment(r.file_path, OFFER_BUCKET).catch((e: any) => setError(e.message))}>Open offer letter</button>
             </div>

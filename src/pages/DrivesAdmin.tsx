@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth'
 import Modal from '../components/Modal'
 import CompanyLogo from '../components/CompanyLogo'
 import { Spinner } from '../components/Layout'
+import { cleanupOfferFile } from '../lib/offers'
 import {
   formatDateTime, isHttpUrl, toInputValue, uploadAttachment, removeAttachment, openAttachment,
   MAX_FILE, ALLOWED_TYPES,
@@ -74,8 +75,10 @@ export default function DrivesAdmin() {
     setBusyId(r.id); setError('')
     try {
       if (r.attachment_path) await removeAttachment(r.attachment_path)
+      const { data: offs } = await supabase.from('offer_letters').select('file_path').eq('drive_id', r.id)
       const { error: e } = await supabase.from('campus_drives').delete().eq('id', r.id)
       if (e) throw new Error(e.message)
+      for (const path of Array.from(new Set((offs ?? []).map((o: any) => o.file_path)))) await cleanupOfferFile(path).catch(() => {})
       setReload(n => n + 1)
     } catch (ex: any) { setError(ex.message) }
     setBusyId('')
