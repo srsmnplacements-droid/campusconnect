@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
+import PushToggle from '../components/PushToggle'
 import { catLabel, eventCatLabel, formatDate, formatDateTime, startOfToday } from '../lib/content'
 
 export default function StudentDashboard() {
@@ -40,7 +41,11 @@ export default function StudentDashboard() {
           <div><dt className="text-slate-500">Course</dt><dd className="font-semibold">{student.course_code} - {student.course_name}</dd></div>
           <div><dt className="text-slate-500">Profile</dt><dd className="font-semibold">{student.profile_completed ? 'Complete' : 'Incomplete'}</dd></div>
         </dl>
-        <Link to="/change-password" className="btn-outline mt-4">Change password</Link>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link to="/student/profile" className="btn-green">My profile</Link>
+          <Link to="/change-password" className="btn-outline">Change password</Link>
+        </div>
+        {!student.email && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Please add your email in <b>My profile</b> to receive announcements.</p>}
       </section>
 
       <section>
@@ -61,6 +66,8 @@ export default function StudentDashboard() {
           </div>
         )}
       </section>
+
+      <PushToggle />
 
       <section>
         <div className="mb-2 flex items-center justify-between">

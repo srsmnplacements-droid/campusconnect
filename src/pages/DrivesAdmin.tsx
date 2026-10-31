@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import Modal from '../components/Modal'
+import NotifyModal from '../components/NotifyModal'
 import CompanyLogo from '../components/CompanyLogo'
 import { Spinner } from '../components/Layout'
 import { cleanupOfferFile } from '../lib/offers'
@@ -32,6 +33,7 @@ export default function DrivesAdmin() {
   const [editing, setEditing] = useState<any | null | undefined>(undefined)
   const [reload, setReload] = useState(0)
   const [busyId, setBusyId] = useState('')
+  const [notifyFor, setNotifyFor] = useState<any | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -144,6 +146,7 @@ export default function DrivesAdmin() {
               <div className="flex flex-wrap gap-2">
                 <Link to={'/admin/drives/' + r.id} className="btn-navy !py-1.5">Applicants</Link>
                 <button className="btn-outline !py-1.5" onClick={() => setEditing(r)}>Edit</button>
+                {r.status === 'published' && <button className="btn-navy !py-1.5" onClick={() => setNotifyFor(r)}>Notify students</button>}
                 {r.status === 'draft' && <button className="btn-green !py-1.5" disabled={busyId === r.id} onClick={() => changeStatus(r, 'published')}>Publish</button>}
                 {r.status === 'published' && <>
                   <button className="btn-outline !py-1.5" disabled={busyId === r.id} onClick={() => changeStatus(r, 'closed')}>Close</button>
@@ -164,6 +167,8 @@ export default function DrivesAdmin() {
           </div>
         </div>
       )}
+
+      {notifyFor && <NotifyModal itemType={'drive'} itemId={notifyFor.id} onClose={() => setNotifyFor(null)} />}
 
       {editing !== undefined && (
         <DriveEditor row={editing} years={years} courses={courses} companies={companies} userId={session?.user.id ?? null}

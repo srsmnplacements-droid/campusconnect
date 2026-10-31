@@ -8,6 +8,7 @@ const LABEL: Record<string, string> = {
   create_students: 'Students created',
   reset_student_password: 'Password reset',
   delete_student: 'Student deleted',
+  send_notification: 'Announcement sent',
   export_year_archive: 'Archive exported',
   delete_year_data: 'Academic-year data deleted',
 }

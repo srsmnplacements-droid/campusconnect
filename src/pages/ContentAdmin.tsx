@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import Modal from '../components/Modal'
+import NotifyModal from '../components/NotifyModal'
 import { Spinner } from '../components/Layout'
 import {
   CONTENT, Kind, catLabel, formatDate, isHttpUrl, uploadAttachment, removeAttachment,
@@ -29,6 +30,7 @@ export default function ContentAdmin({ kind }: { kind: Kind }) {
   const [editing, setEditing] = useState<any | null | undefined>(undefined) // undefined = closed, null = new
   const [reload, setReload] = useState(0)
   const [busyId, setBusyId] = useState('')
+  const [notifyFor, setNotifyFor] = useState<any | null>(null)
 
   useEffect(() => {
     supabase.from('academic_years').select('id, label, is_current').order('label', { ascending: false })
@@ -149,6 +151,7 @@ export default function ContentAdmin({ kind }: { kind: Kind }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button className="btn-outline !py-1.5" onClick={() => setEditing(r)}>Edit</button>
+                {r.status === 'published' && <button className="btn-navy !py-1.5" onClick={() => setNotifyFor(r)}>Notify students</button>}
                 {r.status !== 'published' && (
                   <button className="btn-green !py-1.5" disabled={busyId === r.id} onClick={() => changeStatus(r, 'published')}>Publish</button>
                 )}
@@ -171,6 +174,8 @@ export default function ContentAdmin({ kind }: { kind: Kind }) {
           </div>
         </div>
       )}
+
+      {notifyFor && <NotifyModal itemType={kind === 'notices' ? 'notice' : 'resource'} itemId={notifyFor.id} onClose={() => setNotifyFor(null)} />}
 
       {editing !== undefined && (
         <Editor kind={kind} row={editing} years={years} userId={session?.user.id ?? null}

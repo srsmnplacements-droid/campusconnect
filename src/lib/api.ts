@@ -22,3 +22,11 @@ export async function callArchive<T = any>(body: Record<string, unknown>): Promi
   if (!data || data.ok === false) throw new Error(data?.error ?? 'Unknown error')
   return data as T
 }
+
+// Calls the secure announcement function (email + phone notifications). Admin only.
+export async function callNotify<T = any>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('admin-notify', { body })
+  if (error) throw new Error('Could not reach the announcement function. ' + error.message)
+  if (!data || data.ok === false) throw new Error(data?.error ?? 'Unknown error')
+  return data as T
+}

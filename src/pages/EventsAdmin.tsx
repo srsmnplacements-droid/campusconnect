@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import Modal from '../components/Modal'
+import NotifyModal from '../components/NotifyModal'
 import { Spinner } from '../components/Layout'
 import {
   EVENT_CATEGORIES, eventCatLabel, formatDateTime, toInputValue, uploadAttachment,
@@ -30,6 +31,7 @@ export default function EventsAdmin() {
   const [editing, setEditing] = useState<any | null | undefined>(undefined)
   const [reload, setReload] = useState(0)
   const [busyId, setBusyId] = useState('')
+  const [notifyFor, setNotifyFor] = useState<any | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -137,6 +139,7 @@ export default function EventsAdmin() {
               <div className="flex flex-wrap gap-2">
                 <Link to={'/admin/events/' + r.id} className="btn-navy !py-1.5">Participants</Link>
                 <button className="btn-outline !py-1.5" onClick={() => setEditing(r)}>Edit</button>
+                {r.status === 'published' && <button className="btn-navy !py-1.5" onClick={() => setNotifyFor(r)}>Notify students</button>}
                 {r.status === 'draft' && <button className="btn-green !py-1.5" disabled={busyId === r.id} onClick={() => changeStatus(r, 'published')}>Publish</button>}
                 {r.status === 'published' && <>
                   <button className="btn-outline !py-1.5" disabled={busyId === r.id} onClick={() => changeStatus(r, 'closed')}>Close registration</button>
@@ -159,6 +162,8 @@ export default function EventsAdmin() {
           </div>
         </div>
       )}
+
+      {notifyFor && <NotifyModal itemType={'event'} itemId={notifyFor.id} onClose={() => setNotifyFor(null)} />}
 
       {editing !== undefined && (
         <EventEditor row={editing} years={years} courses={courses} userId={session?.user.id ?? null}
